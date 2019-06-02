@@ -90,10 +90,7 @@ df_usage_merge4= df_usage_merge3.merge(dfu123, left_on='cust_id', right_index=Tr
 #2286 and 4 rows
 
 
-#write out to excel
-# Assign spreadsheet filename: file_out
-file_out = 'C:\warehouse\case_study\aggragated_usage.xlsx'
-df_usage_merge4.to_excel('aggragated_usage.xlsx')
+
 
 
 df_usage_merge4['A_perc'] = df['A']/df['sum']
@@ -112,9 +109,9 @@ import numpy as np
 #could define scenarios as functions with def
 def new_cust(x, y):
     if np.isnan(x)==True and y >= 0:
-        new_2011 = 1
+        new_2011 = 'True'
     else:
-        new_2011 = 0
+        new_2011 = '
     return new_2011
 
 df_usage_merge4['new_2011'] = df_usage_merge4.apply(lambda row: new_cust(row['transactions_2010'], row['transactions_2011']), axis=1)
@@ -141,8 +138,168 @@ df_usage_merge4[new_2012]
 df_usage_merge4.loc[(np.isnan(df_usage_merge4['transactions_2010'])==True) & (np.isnan(df_usage_merge4['transactions_2011'])==True) & (df_usage_merge4['transactions_2012'] >= 0),'new_2012'] = 'True'
 
 
-#new_2012 if both 2010 and 2011 are missing and we have transactions in 2012
-df_usage_merge4.loc[(np.isnan(df_usage_merge4['transactions_2010'])==True) & (np.isnan(df_usage_merge4['transactions_2011'])==True) & (df_usage_merge4['transactions_2012'] >= 0),'new_2012'] = 'True'
+#new_2011 if 2010 is missing and we have transactions in 2011   this doesn't work think the function may be the easiest 
+df_usage_merge4.loc[(np.isnan(df_usage_merge4['transactions_2010'])==True) & (df_usage_merge4['transactions_2011'] >= 0),'new_2011'] = 'True'
 
 
+def new_cust_2011(x, y):
+    if np.isnan(x)==True and y >= 0:
+        new_2011 = 'True'
+    else:
+        new_2011 = 'False'
+    return new_2011
+
+df_usage_merge4['new_2011'] = df_usage_merge4.apply(lambda row: new_cust_2011(row['transactions_2010'], row['transactions_2011']), axis=1)
+
+def new_cust_2012(x, y):
+    if np.isnan(x)==True and np.isnan(y)==True:
+        new_2012 = 'True'
+    else:
+        new_2012 = 'False'
+    return new_2012
+
+
+df_usage_merge4['new_2012'] = df_usage_merge4.apply(lambda row: new_cust_2012(row['transactions_2010'], row['transactions_2011']), axis=1)
+
+#just using this works fine as we get no 
+#df_usage_merge4.loc[df_usage_merge4['new_2012']=='True']
+#df.loc[df['column_name'] == some_value]
+
+#write out to excel
+df_usage_merge4.to_excel('aggragated_usage2.xlsx')
+
+
+def cancelled_2011(x, y):
+    if x >= 0 and np.isnan(y)==True:
+        cancel_2011 = 'True'
+    else:
+        cancel_2011 = 'False'
+    return cancel_2011
+
+
+df_usage_merge4['cancel_2011'] = df_usage_merge4.apply(lambda row: cancelled_2011(row['transactions_2010'], row['transactions_2011']), axis=1)
+
+
+def cancelled_2012(x, y):
+    if x >= 0 and np.isnan(y)==True:
+        cancel_2012 = 'True'
+    else:
+        cancel_2012 = 'False'
+    return cancel_2012
+
+
+df_usage_merge4['cancel_2012'] = df_usage_merge4.apply(lambda row: cancelled_2012(row['transactions_2011'], row['transactions_2012']), axis=1)
+
+
+
+def active_2010(x):
+    if x > 0:
+        active_2010 = 'True'
+    else:
+        active_2010 = 'False'
+    return active_2010
+
+
+df_usage_merge4['active_2010'] = df_usage_merge4.apply(lambda row: active_2010(row['transactions_2010']), axis=1)
+
+
+def active_2011(x):
+    if x > 0:
+        active_2011 = 'True'
+    else:
+        active_2011 = 'False'
+    return active_2011
+
+
+df_usage_merge4['active_2011'] = df_usage_merge4.apply(lambda row: active_2011(row['transactions_2011']), axis=1)
+
+
+def active_2012(x):
+    if x > 0:
+        active_2012 = 'True'
+    else:
+        active_2012 = 'False'
+    return active_2012
+
+
+df_usage_merge4['active_2012'] = df_usage_merge4.apply(lambda row: active_2012(row['transactions_2012']), axis=1)
+
+#write out to excel
+df_usage_merge4.to_excel('aggragated_usage3.xlsx')
+
+
+#load data into pandas
+# Import pandas
+import pandas as pd
+
+# Assign spreadsheet filename: file
+file = 'C:\warehouse\case_study\FF_Case_Data_Set_2014.xlsx'
+
+# Load spreadsheet: xl
+xl2 = pd.ExcelFile(file)
+
+# Print sheet names
+print(xl2.sheet_names)
+# Load a sheet into a DataFrame by name: df_usage
+df_reform = xl2.parse('Revenue_reform')
+
+# Print the head of the DataFrame df_usage
+print(df_reform.head())
+
+df_reform_2 = df_reform.loc[df_reform['prod_grp_code']==2]
+
+print(df_reform_2['Cust_ID'].value_counts(dropna=False))
+
+df_usage_merge5= df_usage_merge4.merge(df_reform_2, left_on='cust_id', right_on='Cust_ID', how='right')
+
+df_usage_merge5.loc[df_usage_merge5[0:][1]]
+Is_gt_0 = df_usage_merge5["total_revenue_2010"] > 0
+
+df_usage_merge5[Is_gt_0].total_revenue_2010.plot('hist', bins = 50)
+
+#this syntax works to limit the min and max
+trans_gt_0 = (df_usage_merge5["transactions_2010"] < 2.5e7) & (df_usage_merge5["transactions_2010"] > 1000)
+
+
+df_usage_merge5[trans_gt_0].transactions_2010.plot('hist')
+
+import matplotlib.pyplot as plt
+
+plt.scatter(df_usage_merge5["transactions_2010"], df_usage_merge5["transactions_2011"])
+
+# Put the x-axis on a logarithmic scale
+#plt.xscale('log')
+
+# Show plot
+plt.show()
+
+plt.scatter(df_usage_merge5["transactions_2010"], df_usage_merge5["transactions_2011"])
+
+plt.show()
+
+#easiest way to make a calculated column  malke revenue per transaction by year
+df_usage_merge5['rpt_2010'] = df_usage_merge5['total_revenue_2010'] / df_usage_merge5['transactions_2010'] 
+df_usage_merge5['rpt_2011'] = df_usage_merge5['total_revenue_2011'] / df_usage_merge5['transactions_2011']
+df_usage_merge5['rpt_2012'] = df_usage_merge5['total_revenue_2012'] / df_usage_merge5['transactions_2012']
+df_usage_merge5['inactive_all'] = int(df_usage_merge5['active_2010']) +  int(df_usage_merge5['active_2011']) +  int(df_usage_merge5['active_2012'] 
+
+def inactive(x):
+    if np.isnan(x)==True:
+        inactive_all = 'True'
+    else:
+        inactive_all = 'False'
+    return inactive_all
+
+
+df_usage_merge5['inactive'] = df_usage_merge5.apply(lambda row: inactive(row['new_2011']), axis=1)
+
+def active_2011(x):
+    if x > 0:
+        active_2011 = 'True'
+    else:
+        active_2011 = 'False'
+    return active_2011
+
+
+df_usage_merge4['active_2011'] = df_usage_merge4.apply(lambda row: active_2011(row['transactions_2011']), axis=1)
 
