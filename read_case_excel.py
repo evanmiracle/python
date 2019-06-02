@@ -111,7 +111,7 @@ def new_cust(x, y):
     if np.isnan(x)==True and y >= 0:
         new_2011 = 'True'
     else:
-        new_2011 = '
+        new_2011 = 'False'
     return new_2011
 
 df_usage_merge4['new_2011'] = df_usage_merge4.apply(lambda row: new_cust(row['transactions_2010'], row['transactions_2011']), axis=1)
@@ -246,6 +246,7 @@ df_reform = xl2.parse('Revenue_reform')
 # Print the head of the DataFrame df_usage
 print(df_reform.head())
 
+#select just product 2
 df_reform_2 = df_reform.loc[df_reform['prod_grp_code']==2]
 
 print(df_reform_2['Cust_ID'].value_counts(dropna=False))
@@ -281,7 +282,9 @@ plt.show()
 df_usage_merge5['rpt_2010'] = df_usage_merge5['total_revenue_2010'] / df_usage_merge5['transactions_2010'] 
 df_usage_merge5['rpt_2011'] = df_usage_merge5['total_revenue_2011'] / df_usage_merge5['transactions_2011']
 df_usage_merge5['rpt_2012'] = df_usage_merge5['total_revenue_2012'] / df_usage_merge5['transactions_2012']
-df_usage_merge5['inactive_all'] = int(df_usage_merge5['active_2010']) +  int(df_usage_merge5['active_2011']) +  int(df_usage_merge5['active_2012'] 
+#df_usage_merge5['inactive_all'] = df_usage_merge5['active_2010'] +  df_usage_merge5['active_2011'] +  df_usage_merge5['active_2012'] 
+
+df_usage_merge5.to_excel('aggragated_usage5.xlsx')
 
 def inactive(x):
     if np.isnan(x)==True:
@@ -293,13 +296,91 @@ def inactive(x):
 
 df_usage_merge5['inactive'] = df_usage_merge5.apply(lambda row: inactive(row['new_2011']), axis=1)
 
-def active_2011(x):
-    if x > 0:
-        active_2011 = 'True'
-    else:
-        active_2011 = 'False'
-    return active_2011
+#def active_2011(x):
+#    if x > 0:
+#        active_2011 = 'True'
+#    else:
+#        active_2011 = 'False'
+#    return active_2011
+#
+#
+#df_usage_merge4['active_2011'] = df_usage_merge4.apply(lambda row: active_2011(row['transactions_2011']), axis=1)
+
+df_usage_merge5.to_excel('aggragated_usage5.xlsx')
+
+totals=[df_usage_merge5['transactions_2010'],df_usage_merge5['transactions_2011'],df_usage_merge5['transactions_2012']]
+df_usage_merge5['total']=df_usage_merge5['transactions_2010'].fillna(0)+df_usage_merge5['transactions_2011'].fillna(0)+df_usage_merge5['transactions_2012'].fillna(0)
+
+print(df_usage_merge5['inactive_all'].value_counts(dropna=False))
+#TrueTrueTrue       880
+#NaN                509
+#FalseFalseTrue     476
+#FalseTrueTrue      350
+#FalseFalseFalse    246
+#TrueTrueFalse      116
+#TrueFalseFalse     104
+#FalseTrueFalse      33
+#TrueFalseTrue       11
+print(df_reform_2['prod_grp_code'].value_counts(dropna=False))
+#2    2725
+
+print(df_reform['prod_grp_code'].value_counts(dropna=False))
+#
+#2    2725
+#1    2544
+#4     541
+
+#slice original reform to get just grpcode and custID
+df_sub = df_reform.loc[:,['prod_grp_code','Cust_ID']]
+constant_column = "prod_grp_code"
+#pivot to get three columns for the products each unique customer has
+df_reform_pivot = df_sub.pivot(index='Cust_ID', columns=constant_column, values='prod_grp_code') 
+
+df_reform_pivot['total_code']=df_reform_pivot[1].fillna(0)+df_reform_pivot[2].fillna(0)+df_reform_pivot[4].fillna(0)
+print(df_reform_pivot['total_code'].value_counts(dropna=False))
+#2.0    1386
+#1.0    1288
+#3.0     951
+#5.0     220
+#6.0     176
+#4.0     137
+
+#according to revenue numbers customers paying for 
+#2.0    1386
+#1.0    1288
+#3.0     943
+#6.0     220
+#7.0     176
+#5.0     137
+#4.0       8
+
+#check for trans with no revenue
+
+#merge4 has the unique usage cust numbers
+df_use_rev = df_usage_merge4.merge(df_reform_pivot, left_on='cust_id', right_index=True, how='left')
+df_use_rev['check']= np.where(np.isnan(df_use_rev['total_code'])==True, 'yes', 'no')
+#np.isnan(x)==True
+
+print(df_use_rev['check'].value_counts(dropna=False))
+df_rev_use = df_usage_merge4.merge(df_reform_pivot, left_on='cust_id', right_index=True, how='right')
+
+print(df_rev_use['active_2012'].value_counts(dropna=False))
+#asproxy for rev but no transactions
+#NaN      1872
+#True     1763
+#False     523
 
 
-df_usage_merge4['active_2011'] = df_usage_merge4.apply(lambda row: active_2011(row['transactions_2011']), axis=1)
 
+
+
+df_reform_melt = pd.melt(frame=df_reform, id_vars=['Cust_ID', 'Product Group', 'cust_id_prod_grp', 'prod_grp_code'])
+df_reform_melt.describe()
+
+#write out to excel
+df_reform_melt.to_excel('reform_melt.xlsx')
+
+df_reform_agg = df_reform_melt.pivot_table(values='value',
+                                      index='Cust_ID',
+                                      columns='variable',
+                                      aggfunc=np.sum)
