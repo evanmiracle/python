@@ -380,7 +380,44 @@ df_reform_melt.describe()
 #write out to excel
 df_reform_melt.to_excel('reform_melt.xlsx')
 
-df_reform_agg = df_reform_melt.pivot_table(values='value',
+#need to reformat the date values in variable  chnaged to text number value
+########## actually can avoid this step by excplitly setting type
+
+
+
+
+import pandas as pd
+
+# Assign spreadsheet filename: file
+file = 'C:\\warehouse\\case_study\\reform_melt_format.xlsx'
+#get error unless double escape the path
+# Load spreadsheet: xl
+x2 = pd.ExcelFile(file)
+
+# Load a sheet into a DataFrame by name: df_reform_melt_format
+df_reform_melt_format = x2.parse('Sheet1')
+
+# Print the head of the DataFrame df_usage
+print(df_reform_melt_format.head())
+
+#was getting errors witht eh datetime varaible value for the agg fucntion
+#reformated in excel and reimported
+
+
+df_reform_melt_format.dtypes
+df_reform_melt_format2 = df_reform_melt_format.astype({"variable_reform": str, "variable": str})
+df_reform_melt_format2.dtypes
+
+#default agg is np.mean  we want sum
+df_reform_agg = df_reform_melt_format2.pivot_table(values='value',
                                       index='Cust_ID',
                                       columns='variable',
+#                                      columns='variable_reform',
                                       aggfunc=np.sum)
+
+#join transactions to this
+
+df_ra_use2 = df_reform_agg.merge(df_usage_merge4, left_index=True, right_on='cust_id', how='left')
+#now join with reform_pivot index to index
+
+df_ra_use_full = df_ra_use2.merge(df_reform_pivot, left_on='cust_id', right_index=True, how='left')
